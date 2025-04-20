@@ -1,0 +1,430 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+
+namespace ClinicaApp
+{
+    class Program
+    {
+        static string adminUser = "admin";
+        static string adminPass = "admin123";
+
+        static void Main(string[] args)
+        {
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine("=== Sistema de Clínica ===");
+                Console.WriteLine("1. Login como Doctor");
+                Console.WriteLine("2. Login como Administrador");
+                Console.WriteLine("3. Salir");
+                Console.Write("Elige una opción: ");
+                var opcion = Console.ReadLine();
+
+                switch (opcion)
+                {
+                    case "1":
+                        LoginDoctor();
+                        break;
+                    case "2":
+                        LoginAdmin();
+                        break;
+                    case "3":
+                        return;
+                }
+            }
+        }
+
+        static void LoginDoctor()
+        {
+            Console.Write("Usuario: ");
+            var user = Console.ReadLine();
+            Console.Write("Clave: ");
+            var pass = Console.ReadLine();
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "SELECT * FROM Doctores WHERE Usuario = @Usuario AND Clave = @Clave";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@Usuario", user);
+                cmd.Parameters.AddWithValue("@Clave", pass);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    string nombre = reader["Nombre"].ToString();
+                    reader.Close();
+                    MenuDoctor(new Doctor { Nombre = nombre, Usuario = user, Clave = pass });
+                }
+                else
+                {
+                    Console.WriteLine("Credenciales inválidas.");
+                    Console.ReadKey();
+                }
+                con.Close();
+            }
+        }
+
+        static void LoginAdmin()
+        {
+            Console.Write("Usuario Admin: ");
+            var user = Console.ReadLine();
+            Console.Write("Clave: ");
+            var pass = Console.ReadLine();
+
+            if (user == adminUser && pass == adminPass)
+            {
+                Console.WriteLine("Bienvenido Administrador");
+                MenuAdmin();
+            }
+            else
+            {
+                Console.WriteLine("Credenciales inválidas.");
+                Console.ReadKey();
+            }
+        }
+
+        static void MenuDoctor(Doctor doctor)
+        {
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine($"=== Menú del Dr. {doctor.Nombre} ===");
+                Console.WriteLine("1. Registrar Paciente");
+                Console.WriteLine("2. Cerrar sesión");
+                Console.Write("Elige una opción: ");
+                var opcion = Console.ReadLine();
+
+                switch (opcion)
+                {
+                    case "1":
+                        RegistrarPaciente(doctor);
+                        break;
+                    case "2":
+                        return;
+                }
+            }
+        }
+
+        static void MenuAdmin()
+        {
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine("=== Menú del Administrador ===");
+                Console.WriteLine("1. Ver todos los pacientes");
+                Console.WriteLine("2. Editar paciente");
+                Console.WriteLine("3. Eliminar paciente");
+                Console.WriteLine("4. Registrar doctor");
+                Console.WriteLine("5. Eliminar doctor");
+                Console.WriteLine("6. Ver todos los doctores");
+                Console.WriteLine("7. Editar usuario o clave de doctor");
+                Console.WriteLine("8. Cerrar sesión");
+                Console.Write("Elige una opción: ");
+                var opcion = Console.ReadLine();
+                static void EliminarDoctor()
+                {
+                    Console.Write("Usuario del doctor a eliminar: ");
+                    var usuario = Console.ReadLine();
+
+                    using (var con = Conexion.ObtenerConexion())
+                    {
+                        con.Open();
+                        string query = "DELETE FROM Doctores WHERE Usuario = @Usuario";
+                        SqlCommand cmd = new SqlCommand(query, con);
+                        cmd.Parameters.AddWithValue("@Usuario", usuario);
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        con.Close();
+
+                        if (rowsAffected > 0)
+                            Console.WriteLine("Doctor eliminado correctamente.");
+                        else
+                            Console.WriteLine("Doctor no encontrado.");
+                    }
+
+                    Console.ReadKey();
+                }
+
+
+                switch (opcion)
+                {
+                    case "1":
+                        MostrarPacientes();
+                        break;
+                    case "2":
+                        EditarPaciente();
+                        break;
+                    case "3":
+                        EliminarPaciente();
+                        break;
+                    case "4":
+                        RegistrarDoctor();
+                        break;
+                    case "5":
+                        EliminarDoctor();
+                        break;
+                    case "6":
+                        MostrarDoctores();
+                        break;
+                    case "7":
+                        EditarDoctor();
+                        break;
+                    case "8":
+                        return;
+                }
+            }
+        }
+
+        static void RegistrarPaciente(Doctor doctor)
+        {
+            Console.Write("Nombre del paciente: ");
+            var nombre = Console.ReadLine();
+            Console.Write("Cédula: ");
+            var cedula = Console.ReadLine();
+            Console.Write("Teléfono: ");
+            var telefono = Console.ReadLine();
+            Console.Write("Correo electrónico: ");
+            var correo = Console.ReadLine();
+            Console.Write("Diagnóstico: ");
+            var diagnostico = Console.ReadLine();
+            Console.Write("Medicamento: ");
+            var medicamento = Console.ReadLine();
+            Console.Write("Nota adicional: ");
+            var nota = Console.ReadLine();
+
+            string fechaHoraActual = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "INSERT INTO Pacientes (Nombre, Cedula, Telefono, Correo, Diagnostico, Medicamento, FechaConsulta, Nota, DoctorAtendio) " +
+                               "VALUES (@Nombre, @Cedula, @Telefono, @Correo, @Diagnostico, @Medicamento, @FechaConsulta, @Nota, @DoctorAtendio)";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@Nombre", nombre);
+                cmd.Parameters.AddWithValue("@Cedula", cedula);
+                cmd.Parameters.AddWithValue("@Telefono", telefono);
+                cmd.Parameters.AddWithValue("@Correo", correo);
+                cmd.Parameters.AddWithValue("@Diagnostico", diagnostico);
+                cmd.Parameters.AddWithValue("@Medicamento", medicamento);
+                cmd.Parameters.AddWithValue("@FechaConsulta", fechaHoraActual);
+                cmd.Parameters.AddWithValue("@Nota", nota);
+                cmd.Parameters.AddWithValue("@DoctorAtendio", doctor.Nombre);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+
+            Console.WriteLine("Paciente guardado correctamente.");
+            Console.ReadKey();
+        }
+
+        static void EditarPaciente()
+        {
+            Console.Write("Nombre del paciente a editar: ");
+            var nombre = Console.ReadLine();
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "SELECT * FROM Pacientes WHERE Nombre = @Nombre";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@Nombre", nombre);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    reader.Close();
+                    Console.Write("Nuevo diagnóstico: ");
+                    var diagnostico = Console.ReadLine();
+                    Console.Write("Nuevo medicamento: ");
+                    var medicamento = Console.ReadLine();
+                    Console.Write("Nueva nota: ");
+                    var nota = Console.ReadLine();
+
+                    string update = "UPDATE Pacientes SET Diagnostico = @Diagnostico, Medicamento = @Medicamento, Nota = @Nota WHERE Nombre = @Nombre";
+                    SqlCommand updateCmd = new SqlCommand(update, con);
+                    updateCmd.Parameters.AddWithValue("@Diagnostico", diagnostico);
+                    updateCmd.Parameters.AddWithValue("@Medicamento", medicamento);
+                    updateCmd.Parameters.AddWithValue("@Nota", nota);
+                    updateCmd.Parameters.AddWithValue("@Nombre", nombre);
+                    updateCmd.ExecuteNonQuery();
+
+                    Console.WriteLine("Paciente actualizado correctamente.");
+                }
+                else
+                {
+                    Console.WriteLine("Paciente no encontrado.");
+                }
+
+                con.Close();
+            }
+
+            Console.ReadKey();
+        }
+
+        static void EliminarPaciente()
+        {
+            Console.Write("Nombre del paciente a eliminar: ");
+            var nombre = Console.ReadLine();
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "DELETE FROM Pacientes WHERE Nombre = @Nombre";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@Nombre", nombre);
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                if (rowsAffected > 0)
+                    Console.WriteLine("Paciente eliminado correctamente.");
+                else
+                    Console.WriteLine("Paciente no encontrado.");
+
+                con.Close();
+            }
+
+            Console.ReadKey();
+        }
+
+        static void MostrarPacientes()
+        {
+            Console.WriteLine("=== Lista de Pacientes ===");
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "SELECT * FROM Pacientes";
+                SqlCommand cmd = new SqlCommand(query, con);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    Console.WriteLine($"Nombre: {reader["Nombre"]}, Cédula: {reader["Cedula"]}, Teléfono: {reader["Telefono"]}, Correo: {reader["Correo"]}");
+                    Console.WriteLine($"Diagnóstico: {reader["Diagnostico"]}, Medicamento: {reader["Medicamento"]}, Nota: {reader["Nota"]}");
+                    Console.WriteLine($"Fecha: {reader["FechaConsulta"]}, Doctor: {reader["DoctorAtendio"]}");
+                    Console.WriteLine("------------------------------------");
+                }
+
+                reader.Close();
+                con.Close();
+            }
+
+            Console.ReadKey();
+        }
+
+        static void MostrarDoctores()
+        {
+            Console.WriteLine("=== Lista de Doctores ===");
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "SELECT * FROM Doctores";
+                SqlCommand cmd = new SqlCommand(query, con);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    Console.WriteLine($"Nombre: {reader["Nombre"]}, Usuario: {reader["Usuario"]}");
+                }
+
+                reader.Close();
+                con.Close();
+            }
+
+            Console.ReadKey();
+        }
+
+        static void RegistrarDoctor()
+        {
+            Console.Write("Nombre del doctor: ");
+            var nombre = Console.ReadLine();
+            Console.Write("Usuario: ");
+            var usuario = Console.ReadLine();
+            Console.Write("Clave: ");
+            var clave = Console.ReadLine();
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "INSERT INTO Doctores (Nombre, Usuario, Clave) VALUES (@Nombre, @Usuario, @Clave)";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@Nombre", nombre);
+                cmd.Parameters.AddWithValue("@Usuario", usuario);
+                cmd.Parameters.AddWithValue("@Clave", clave);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+
+            Console.WriteLine("Doctor registrado correctamente.");
+            Console.ReadKey();
+        }
+
+        static void EditarDoctor()
+        {
+            Console.Write("Usuario del doctor a editar: ");
+            var usuario = Console.ReadLine();
+
+            using (var con = Conexion.ObtenerConexion())
+            {
+                con.Open();
+                string query = "SELECT * FROM Doctores WHERE Usuario = @Usuario";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@Usuario", usuario);
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    reader.Close();
+                    Console.Write("Nuevo nombre: ");
+                    var nuevoNombre = Console.ReadLine();
+                    Console.Write("Nueva clave: ");
+                    var nuevaClave = Console.ReadLine();
+
+                    string update = "UPDATE Doctores SET Nombre = @Nombre, Clave = @Clave WHERE Usuario = @Usuario";
+                    SqlCommand updateCmd = new SqlCommand(update, con);
+                    updateCmd.Parameters.AddWithValue("@Nombre", nuevoNombre);
+                    updateCmd.Parameters.AddWithValue("@Clave", nuevaClave);
+                    updateCmd.Parameters.AddWithValue("@Usuario", usuario);
+                    updateCmd.ExecuteNonQuery();
+
+                    Console.WriteLine("Doctor actualizado correctamente.");
+                }
+                else
+                {
+                    Console.WriteLine("Doctor no encontrado.");
+                }
+
+                con.Close();
+            }
+
+            Console.ReadKey();
+        }
+    }
+
+    class Doctor
+    {
+        public string Nombre { get; set; }
+        public string Usuario { get; set; }
+        public string Clave { get; set; }
+    }
+
+    class Paciente
+    {
+        public string Nombre { get; set; }
+        public string Cedula { get; set; }
+        public string Telefono { get; set; }
+        public string Correo { get; set; }
+        public string Diagnostico { get; set; }
+        public string Medicamento { get; set; }
+        public string FechaConsulta { get; set; }
+        public string Nota { get; set; }
+        public string DoctorAtendio { get; set; }
+    }
+
+    class Conexion
+    {
+        private static readonly string cadena = "Server=localhost;Database=ClinicaDB;Trusted_Connection=True;";
+        public static SqlConnection ObtenerConexion() => new SqlConnection(cadena);
+    }
+}
